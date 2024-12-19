@@ -1,4 +1,21 @@
-import "./types"
+export declare type AwsWafCaptchaOptions = {
+    apiKey: string;
+    onLoad?: () => void;
+    onSuccess?: (token: string) => void;
+    onError?: (error: unknown) => void;
+    onPuzzleTimeout?: () => void;
+    onPuzzleIncorrect?: () => void;
+    onPuzzleCorrect?: () => void;
+};
+
+export declare class AwsWafCaptcha {
+    public static renderCaptcha(
+        container: HTMLElement,
+        options: AwsWafCaptchaOptions,
+    ): void;
+}
+
+export type RendererCaptchaOptions = Omit<AwsWafCaptchaOptions, 'apiKey'>;
 
 const WAF_TAG_ID = 'aws_waf_captcha_integration_url';
 
@@ -27,32 +44,32 @@ export function unloadScript() {
     }
 }
 
-export function renderCaptcha(apiKey: string, integrationUrl: string, containerId: string) {
-
+export function renderCaptcha(apiKey: string, containerId: string) {
+    console.log("trying to render captcha");
+    
     document.body.style.cursor = 'wait';
-    const container = document.getElementById(containerId);
+    const container = document.getElementById(containerId)!;
 
     return new Promise((resolve, reject) => {
-      container?.style.visibility = "visible";
+        container.style.visibility = "visible";
 
-      loadScript(integrationUrl);
-      window.AwsWafCaptcha.renderCaptcha(container, {
-        onSuccess: (wafToken) => {
-          container?.style.visibility = "hidden"
-          resolve(wafToken)
-        },
-        onLoad: () => {
-          document.body.style.cursor = 'default'
-        },
-        onError: () => {
-            reject("Error when loading captcha")
-            container?.style.visibility = "hidden"
-        },
-        onPuzzleTimeout: () => reject("puzzleTimeout"),
-        onPuzzleIncorrect: () => reject('onPuzzleIncorrect'),
-        onPuzzleCorrect: () => reject('onPuzzleCorrect'),
+        AwsWafCaptcha.renderCaptcha(container, {
+            onSuccess: (wafToken) => {
+                container.style.visibility = "hidden"
+                resolve(wafToken)
+            },
+            onLoad: () => {
+                document.body.style.cursor = 'default'
+            },
+            onError: () => {
+                reject("Error when loading captcha")
+                container.style.visibility = "hidden"
+            },
+            onPuzzleTimeout: () => reject("puzzleTimeout"),
+            onPuzzleIncorrect: () => reject('onPuzzleIncorrect'),
+            onPuzzleCorrect: () => reject('onPuzzleCorrect'),
 
-        apiKey: apiKey
-      })
+            apiKey: apiKey
+        })
     })
 }

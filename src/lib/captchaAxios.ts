@@ -1,29 +1,34 @@
-import axios from "axios";
+import axios, {AxiosError, AxiosInstance} from "axios";
 import { renderCaptcha } from "./captcha";
 
-export function getAxiosCapthchaInstance(capthcaApiKey: string, integrationUrl: string, containerId: string) {
-    const client = axios.create()
-    const captchaRequired = (error) =>
+declare class AwsWafIntegration {
+    public static getToken(): Promise<string>
+}
+
+export function getAxiosCapthchaInstance(axiosInstance: AxiosInstance, capthcaApiKey: string, containerId: string) {
+    const captchaRequired = (error: AxiosError) =>
         error.response.status === 405 && error.response.headers['x-amzn-waf-action'] === 'captcha'
 
     // Use an Axios interceptor to render the CAPTCHA if the WAF requires it
-    client.interceptors.response.use(response => response, (error) => {
-        if (captchaRequired(error)) {
-            return renderCaptcha(capthcaApiKey, integrationUrl, containerId).then(token => {
+    axiosInstance.interceptors.response.use(response => response, (error) => {
+        console.log("verifying render");
+        
+        if ( error && captchaRequired(error)) {
+            return renderCaptcha(capthcaApiKey, containerId).then(() => {
                 // add the header x-aws-waf-token: token if doing cross domain requests
-                return client.request(error.config)
+                return axiosInstance.request(error.config)
             })
         } else return Promise.reject(error)
     })
 
     // Ensure a token exists before making the request
-    client.interceptors.request.use(config => {
-        return window.AwsWafIntegration.getToken().then((token) => {
+    axiosInstance.interceptors.request.use(config => {
+        return AwsWafIntegration.getToken().then((token) => {
             // add the header x-aws-waf-token: token if doing cross domain requests
             config.headers["x-aws-waf-token"] = token
             return config
         })
     }, _ => Promise.reject(_))
 
-    return client;
+    return axiosInstance;
 }

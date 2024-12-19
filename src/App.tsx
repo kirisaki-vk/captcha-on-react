@@ -1,27 +1,42 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 import { getAxiosCapthchaInstance } from './lib/captchaAxios';
+import axios, { AxiosError } from 'axios';
+import { loadScript, renderCaptcha } from './lib/captcha';
 
 function App() {
   const [num, setNum] = useState<number>();
-  const [res, setRes] = useState<string[]>()
-  const axiosClient = getAxiosCapthchaInstance(import.meta.env.VITE_CAPTCHA_API_KEY, import.meta.env.VITE_CAPTCHA_CDN_URL, "captcha_container")
-  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-  const handleSubmit = () => {
-    const requests = Array().fill(new Promise<void>((resolve, reject) => {
-      sleep(1000);
-      axiosClient.get("https://api.prod.jcloudify.com/whoami").catch((e) => {
-        setRes(old => {
-          old?.push(`${e}`);
-          return old
-        })
-      })
-      resolve()
-    }), 0, num);
+  const [res, setRes] = useState<string[]>();
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
-    Promise.all(requests)
+  useEffect(() => {
+    loadScript(import.meta.env.VITE_CAPTCHA_CDN_URL)
+  })
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [res])
+
+  const axiosClient = getAxiosCapthchaInstance(axios.create({
+    baseURL: import.meta.env.VITE_API_URL
+  }),
+    import.meta.env.VITE_CAPTCHA_API_KEY, "captcha-container")
+  const handleSubmit = (ev: {
+    preventDefault: () => void
+  }) => {
+    ev.preventDefault();
+    let requestsNum = num;
+    const interval = setInterval(() => {
+      axiosClient.get("/whoami").catch((e: AxiosError) => {
+        setRes(old => old ? old.concat(`${e.status}: ${e.status === 403 ? 'FORBIDEN' : 'METHOD NOT ALLOWED'}`): [])
+      });
+      if (requestsNum <= 0) {
+        clearInterval(interval);
+      }
+      requestsNum--;
+    }, 1000);
   }
 
   return (
@@ -36,22 +51,29 @@ function App() {
       </div>
       <h1>Vite + React + WAF Captcha</h1>
       <div className="card">
-        <form onSubmit={(ev) => {
-          ev.preventDefault();
-          console.log(ev.target);
-          handleSubmit()
-        }}>
-          <input name='value' value={num} type='number' placeholder='Please enter a number betwen 1 and 1000'
+        <form onSubmit={handleSubmit} id={"number-form-container"}>
+          <input 
+            name='value' 
+            value={num} 
+            type='number' 
+            placeholder='Please enter a number betwen 1 and 1000'
+            min={1}
+            max={1000}
             onChange={(ev) => {
               setNum(+ev.target.value)
             }}
+            id='number-form'
           />
           <button type='submit'>
             Submit
           </button>
         </form>
-        <div>
-          {(res?.map((err) => <p>{err}</p>))}
+        <div style={{
+          maxHeight: "200px",
+          overflow: "auto"
+        }}>
+          {(res?.map((err, i) => <p key={i}>{(i + 1) + " : " + err}</p>))}
+          <div ref={bottomRef}></div>
         </div>
         <div id="captcha-container">
           {/* Captcha will render here */}
