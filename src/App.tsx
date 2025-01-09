@@ -38,14 +38,8 @@ function App() {
         if (e.status === 405) {
           console.log("trying to render captcha");
           document.getElementById("captcha-container").style.visibility = "visible"
-          renderCaptcha(import.meta.env.VITE_CAPTCHA_API_KEY, "captcha-container").then(() => {
+          renderCaptcha(import.meta.env.VITE_CAPTCHA_API_KEY, "captcha-container", requestInterval).then(() => {
                 // add the header x-aws-waf-token: token if doing cross domain requests
-                console.log("Captcha success");
-                
-                document.getElementById("captcha-container").style.visibility = "hidden"
-                if (requestInterval) {
-                    requestInterval();
-                }
             }).catch(e => {
               console.log(e);
             })

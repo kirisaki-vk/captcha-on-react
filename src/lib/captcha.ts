@@ -44,7 +44,7 @@ export function unloadScript() {
     }
 }
 
-export function renderCaptcha(apiKey: string, containerId: string) {
+export function renderCaptcha(apiKey: string, containerId: string, resumeFunction: () => void) {
     console.log("trying to render captcha");
     
     document.body.style.cursor = 'wait';
@@ -56,7 +56,8 @@ export function renderCaptcha(apiKey: string, containerId: string) {
         AwsWafCaptcha.renderCaptcha(container, {
             onSuccess: (wafToken) => {
                 console.log("captcha success");
-                
+                resumeFunction()
+                document.getElementById(containerId).remove();
                 resolve(wafToken)
             },
             onLoad: () => {
