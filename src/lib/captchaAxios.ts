@@ -1,5 +1,4 @@
-import {AxiosError, AxiosInstance} from "axios";
-import { renderCaptcha } from "./captcha";
+import {AxiosInstance} from "axios";
 
 declare class AwsWafIntegration {
     public static getToken(): Promise<string>

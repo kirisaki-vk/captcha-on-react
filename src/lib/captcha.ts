@@ -55,7 +55,8 @@ export function renderCaptcha(apiKey: string, containerId: string) {
 
         AwsWafCaptcha.renderCaptcha(container, {
             onSuccess: (wafToken) => {
-                container.style.visibility = "hidden"
+                console.log("captcha success");
+                
                 resolve(wafToken)
             },
             onLoad: () => {
@@ -63,7 +64,6 @@ export function renderCaptcha(apiKey: string, containerId: string) {
             },
             onError: () => {
                 reject("Error when loading captcha")
-                container.style.visibility = "hidden"
             },
             onPuzzleTimeout: () => reject("puzzleTimeout"),
             onPuzzleIncorrect: () => reject('onPuzzleIncorrect'),
