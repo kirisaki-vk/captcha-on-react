@@ -21,22 +21,42 @@ function App() {
 
   const axiosClient = getAxiosCapthchaInstance(axios.create({
     baseURL: import.meta.env.VITE_API_URL
-  }),
-    import.meta.env.VITE_CAPTCHA_API_KEY, "captcha-container")
+  }))
+
   const handleSubmit = (ev: {
     preventDefault: () => void
   }) => {
     ev.preventDefault();
+    requestInterval()
+  }
+
+  function requestInterval() {
     let requestsNum = num;
     const interval = setInterval(() => {
       axiosClient.get("/whoami").catch((e: AxiosError) => {
         setRes(old => old ? old.concat(`${e.status}: ${e.status === 403 ? 'FORBIDEN' : 'METHOD NOT ALLOWED'}`): [])
+        if (e.status === 405) {
+          console.log("trying to render captcha");
+          document.getElementById("captcha-container").style.visibility = "visible"
+          renderCaptcha(import.meta.env.VITE_CAPTCHA_API_KEY, "captcha-container").then(() => {
+                // add the header x-aws-waf-token: token if doing cross domain requests
+                document.getElementById("captcha-container").style.visibility = "hidden"
+                if (requestInterval) {
+                    requestInterval();
+                }
+            }).catch(e => {
+              console.log(e);
+            })
+          setNum(requestsNum);
+          console.log("trying to sop interval");
+          clearInterval(interval);
+        }
       });
       if (requestsNum <= 0) {
         clearInterval(interval);
       }
       requestsNum--;
-    }, 1000);
+    }, 500);
   }
 
   return (
